@@ -3390,13 +3390,12 @@ def cmd_ensure(args):
 
 # ── GPU lease — one hold mechanism for EVERY device ───────────
 # A lease names a holder, covers a set of devices, and carries a TTL. Any
-# consumer (ComfyUI renders, a bench run, a training job) acquires before it
+# consumer (image generation, a bench run, a training job) acquires before it
 # touches a card and releases when done. model-swap enforces it: starting a
 # server on a device another holder leases is denied, and the idle watchdogs
-# treat a live lease as activity (so a long axis is not idle-killed — the case
-# the forbidden watchdog-suppressor daemon was built for). The lease expires if
-# not renewed, so a crashed holder never blocks a card forever, and model-swap
-# stays the sole writer of GPU state.
+# treat a live lease as activity (so a long job is not idle-killed). The lease
+# expires if not renewed, so a crashed holder never blocks a card forever, and
+# model-swap stays the sole writer of GPU state.
 LEASE_FILE = MODELS_DIR / ".gpu-lease.json"
 # Pre-generalization name. Migrated in place on first touch so a live ComfyUI
 # lease is not orphaned by the rename.
@@ -3759,7 +3758,7 @@ def cmd_lease(args):
     return 0
 
 
-# ── GPU Reservation (exclusive access for Voxtral, WhisperX, etc.) ─────────
+# ── GPU Reservation (exclusive access for a non-model-swap job) ────────────
 
 RESERVATION_FILE = MODELS_DIR / ".reservation.json"
 
@@ -3946,7 +3945,7 @@ def cmd_release(args):
 
 # ── HuggingFace download proxy ───────────────────────────────────────────────
 
-HF_DEFAULT_RATE_MBPS = 2000  # Mbps — leaves headroom on 5GbE; curl single-stream won't saturate like hf-cli
+HF_DEFAULT_RATE_MBPS = 2000  # Mbps cap; curl single-stream won't saturate the link like hf-cli
 
 
 def _hf_api_get(path: str) -> dict | None:
@@ -4919,7 +4918,7 @@ def build_parser():
     p.add_argument("--idle-timeout", dest="idle_timeout", type=int, default=None,
                    help="ensure: stop the slot after N s without activity (default: config slot_idle_timeout_s)")
 
-    # reserve (exclusive GPU access for Voxtral, WhisperX, etc.)
+    # reserve (exclusive GPU access for a non-model-swap job)
     p = sub.add_parser("reserve", parents=[common], help="Reserve GPU(s) for exclusive use")
     p.add_argument("--devices", nargs="+", choices=_device_choices, default=list(_device_choices),
                    help="GPU devices to reserve (default: all listed)")
