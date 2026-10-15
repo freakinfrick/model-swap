@@ -3397,9 +3397,6 @@ def cmd_ensure(args):
 # expires if not renewed, so a crashed holder never blocks a card forever, and
 # model-swap stays the sole writer of GPU state.
 LEASE_FILE = MODELS_DIR / ".gpu-lease.json"
-# Pre-generalization name. Migrated in place on first touch so a live ComfyUI
-# lease is not orphaned by the rename.
-LEASE_FILE_LEGACY = MODELS_DIR / ".comfyui-lease.json"
 LEASE_TTL_S = 90          # stale if not renewed within this window
 LEASE_RENEW_INTERVAL_S = 30   # recommended heartbeat cadence — comfortably < TTL
 SLOT_BUSY_WINDOW_S = 60   # a slot is "serving" if touched within this window
@@ -3431,20 +3428,6 @@ def _lease_devices(names):
     return uuids
 
 
-def _lease_migrate_legacy():
-    """Adopt a pre-rename `.comfyui-lease.json` as the general lease file.
-
-    Renaming the file must not silently drop a live ComfyUI lease, so the old
-    name is moved into place (never merged over a newer lease)."""
-    try:
-        if LEASE_FILE_LEGACY.exists() and not LEASE_FILE.exists():
-            os.replace(LEASE_FILE_LEGACY, LEASE_FILE)
-        elif LEASE_FILE_LEGACY.exists():
-            LEASE_FILE_LEGACY.unlink(missing_ok=True)
-    except Exception:
-        pass
-
-
 def _self_holder():
     """Holder identity of THIS process, if it already owns a lease.
 
@@ -3457,7 +3440,6 @@ def _self_holder():
 def _lease_read():
     """Return the active lease dict, or None if missing/expired. Expiry is the
     backstop: a holder that stops renewing frees its devices automatically."""
-    _lease_migrate_legacy()
     if not LEASE_FILE.exists():
         return None
     try:
@@ -3610,7 +3592,6 @@ def cmd_lease(args):
         return 0
 
     if action == "renew":
-        _lease_migrate_legacy()
         if not LEASE_FILE.exists():
             error("No lease to renew (acquire first)")
             return 1
@@ -3644,7 +3625,6 @@ def cmd_lease(args):
         return 0
 
     if action == "release":
-        _lease_migrate_legacy()
         live = _lease_read()
         if (live and args.holder and live.get("holder") != args.holder
                 and not args.force):
