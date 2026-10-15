@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 440" width="950" height="440" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    :root { --bg:#ffffff; --panel:#f6f8fa; --line:#d0d7de; --text:#1f2328; --muted:#59636e;
+            --card:#ffffff; --prim:#0969da; --slot:#1a7f37; --pool:#8250df; --code:#f6f8fa; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#0d1117; --panel:#161b22; --line:#3d444d; --text:#e6edf3; --muted:#9198a1;
+              --card:#0d1117; --prim:#4493f8; --slot:#3fb950; --pool:#ab7df8; --code:#161b22; }
+    }
+    .bg { fill: var(--bg); }
+    .panel { fill: var(--panel); stroke: var(--line); }
+    .card { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+    .t { fill: var(--text); font-size: 14px; }
+    .h { fill: var(--text); font-size: 16px; font-weight: 600; }
+    .m { fill: var(--muted); font-size: 12.5px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; fill: var(--text); }
+    .key { fill: var(--muted); }
+    .prim { fill: var(--prim); } .slot { fill: var(--slot); } .pool { fill: var(--pool); }
+    .primS { stroke: var(--prim); } .slotS { stroke: var(--slot); } .poolS { stroke: var(--pool); }
+    .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#a); }
+    .ah { fill: var(--muted); }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="950" height="440" rx="12"/>
+
+  <!-- left: the machine -->
+  <text class="h" x="24" y="34">One machine, as config.example.yaml describes it</text>
+
+  <!-- pool outline spanning both cards -->
+  <rect x="24" y="56" width="452" height="290" rx="14" fill="none" class="poolS" stroke-width="2" stroke-dasharray="7 6"/>
+  <text class="t pool" x="40" y="80" font-weight="600">slot "pool" · all-pool · :8093</text>
+  <text class="m" x="40" y="98">both cards as one 40 GB llama.cpp server (--split-mode layer)</text>
+
+  <!-- gpu0 -->
+  <rect class="card" x="44" y="116" width="196" height="210" rx="10"/>
+  <text class="h" x="60" y="142">gpu0</text>
+  <text class="m" x="60" y="160">24 GB · pinned by UUID</text>
+  <rect x="60" y="176" width="164" height="12" rx="6" class="panel"/>
+  <rect x="60" y="176" width="104" height="12" rx="6" class="prim"/>
+  <rect x="60" y="204" width="164" height="104" rx="8" fill="none" class="primS" stroke-width="2"/>
+  <text class="t prim" x="74" y="228" font-weight="600">primary · :8012</text>
+  <text class="m" x="74" y="248">load / ensure / stop</text>
+  <text class="m" x="74" y="266">llama.cpp · vLLM · ds4</text>
+  <text class="m" x="74" y="284">idle stop after 1800 s</text>
+
+  <!-- gpu1 -->
+  <rect class="card" x="260" y="116" width="196" height="210" rx="10"/>
+  <text class="h" x="276" y="142">gpu1</text>
+  <text class="m" x="276" y="160">16 GB · pinned by UUID</text>
+  <rect x="276" y="176" width="164" height="12" rx="6" class="panel"/>
+  <rect x="276" y="176" width="70" height="12" rx="6" class="slot"/>
+  <rect x="276" y="204" width="164" height="104" rx="8" fill="none" class="slotS" stroke-width="2"/>
+  <text class="t slot" x="290" y="228" font-weight="600">slot "secondary"</text>
+  <text class="m" x="290" y="248">gpu1-solo · :8091</text>
+  <text class="m" x="290" y="266">slot secondary ensure</text>
+  <text class="m" x="290" y="284">or a FreeToken borrow</text>
+
+  <!-- rules -->
+  <text class="m" x="24" y="374">Starting the pool stops the primary and the solo slot (it holds both cards).</text>
+  <text class="m" x="24" y="394">Starting the primary stops any slot that holds gpu0. A lease on a card blocks</text>
+  <text class="m" x="24" y="414">every start on it until the holder releases it or stops renewing.</text>
+
+  <!-- arrow to contract -->
+  <path class="arrow" d="M 482 200 C 520 200, 520 200, 556 200"/>
+  <text class="m" x="490" y="188">rewrites</text>
+
+  <!-- right: the contract -->
+  <rect class="panel" x="560" y="56" width="366" height="358" rx="10"/>
+  <text class="h" x="580" y="84">~/gpu-contract.yaml</text>
+  <text class="m" x="580" y="102">every other program reads this, never the servers</text>
+  <text class="mono" x="580" y="134"><tspan class="key">primary:</tspan></text>
+  <text class="mono" x="596" y="152"><tspan class="key">port:</tspan> 8012</text>
+  <text class="mono" x="596" y="170"><tspan class="key">gpu:</tspan> gpu0</text>
+  <text class="mono" x="596" y="188"><tspan class="key">state:</tspan> running</text>
+  <text class="mono" x="596" y="206"><tspan class="key">profile:</tspan> qwen-9b</text>
+  <text class="mono" x="580" y="230"><tspan class="key">slots:</tspan></text>
+  <text class="mono" x="596" y="248"><tspan class="key">secondary:</tspan> {port: 8091, state: running}</text>
+  <text class="mono" x="596" y="266"><tspan class="key">pool:</tspan> {port: 8093, state: stopped}</text>
+  <text class="mono" x="580" y="290"><tspan class="key">models:</tspan></text>
+  <text class="mono" x="596" y="308"><tspan class="key">Qwen-9B-Q4_K_M:</tspan> http://127.0.0.1:8012</text>
+  <text class="mono" x="580" y="332"><tspan class="key">reservation:</tspan> null</text>
+  <text class="mono" x="580" y="350"><tspan class="key">lease:</tspan> null</text>
+  <text class="m" x="580" y="386">Simplified: real entries also carry model,</text>
+  <text class="m" x="580" y="402">pid, device and idle timeout.</text>
+</svg>
