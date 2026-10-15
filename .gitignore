@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+# private rig config never belongs here (template: config.example.yaml)
+config.yaml

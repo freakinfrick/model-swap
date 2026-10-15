@@ -1,0 +1,88 @@
+# model-swap rig config. Copy to ~/.config/model-swap/config.yaml (or point
+# MODEL_SWAP_CONFIG at a file) and describe your machine. Everything that is a
+# fact about one machine lives here; the script holds none.
+#
+# Required: gpus, primary. Everything else is optional.
+
+# Where things live. ~ is expanded. Engine paths default to the binary of that
+# name on PATH (llama-server, ds4-server, ft, python3).
+paths:
+  models_dir: ~/models                 # GGUFs + profiles/*.yaml + state files
+  contract: ~/gpu-contract.yaml        # the file every GPU consumer reads
+  # llama_server: ~/llama.cpp/build/bin/llama-server
+  # vllm_python: ~/venv-vllm/bin/python
+  # ds4_server: ~/ds4/ds4-server
+  # freetoken: ~/freetoken/.venv/bin/ft
+
+# host: 127.0.0.1
+
+# Every card model-swap may touch, keyed by the name you want to type
+# (`reserve --devices <name>`, a freetoken profile's `device:`). Pin by UUID —
+# `nvidia-smi -L` lists them; CUDA indices reshuffle when cards are reseated.
+# PCI index and compute capability are read from nvidia-smi; set `pci_index:`
+# or `arch:` on a card only to override that.
+gpus:
+  gpu0: {uuid: GPU-00000000-0000-0000-0000-000000000000, vram_mb: 24564, label: RTX 4090}
+  # gpu1: {uuid: GPU-11111111-1111-1111-1111-111111111111, vram_mb: 16384, label: RTX 5060 Ti}
+
+# The card the main llama-server (`load`, `ensure`, `stop`) runs on.
+primary:
+  gpu: gpu0
+  port: 8012
+  default_profile: null                # `ensure` with no history and no --profile
+  idle_timeout_s: 1800                 # stop after this long without tokens; gateway reloads on next call
+
+# Extra servers, each on its own port (`slot <key> ensure|stop|status`). A slot
+# with several cards pools them (layer/tensor split); `gpus:` order is the
+# CUDA_VISIBLE_DEVICES order, so a --tensor-split ratio follows it. Slots that
+# share a card or port evict each other; a slot holding the primary card evicts
+# the primary server. The key `secondary` also backs the secondary-* commands,
+# and its `device_alias` is accepted by `--device` and `reserve --devices`.
+slots: {}
+#  secondary: {name: gpu1-solo, port: 8091, gpus: [gpu1], device_alias: gpu1}
+#  pool:
+#    name: all-pool
+#    port: 8093
+#    gpus: [gpu0, gpu1]
+#    extra_args: ["--split-mode", "layer", "--tensor-split", "24,16"]
+#    label: 40GB pool
+
+# Model a bare `slot <key> ensure` loads (glob, ** allowed). Unset = must pass
+# --gguf or --profile.
+# slot_default_gguf: ~/.cache/huggingface/hub/models--org--Model-GGUF/**/Model-Q4_K_M.gguf
+slot_idle_timeout_s: 1800   # slot idle stop (s); gateway wake reloads the slot's last-ensured model
+
+# Extra lease/reserve device names. GPU names, slot names, `primary` and `all`
+# are always available.
+# device_aliases:
+#   both: [gpu0, gpu1]
+# lease_default_devices: [all]
+
+# FreeToken backend (borrow a card for a MoE-offload server).
+# freetoken:
+#   port: 1919
+#   env: {FREETOKEN_ALLOW_CUDA_MISMATCH: "1"}   # box-wide env for every ft serve
+
+# rclone remote where archived weights live; `list`/`validate` then report a
+# missing model as archived instead of missing. Manifest: <models_dir>/ARCHIVED.txt
+# archive_remote: myremote:models
+
+# Published as-is under `gateway:` in the contract, for a proxy in front of the servers.
+# gateway: {url: http://127.0.0.1:8088, port: 8088, note: route LLM traffic here}
+
+# Other GPU services reported in the contract (never started or stopped here).
+# Up = GET http://127.0.0.1:<port><probe> returns 200.
+#   pid_file      read a pid when up
+#   from_health   fields formatted from the probe's JSON ("{key}" keeps the raw value)
+#   report_lease  add `leased:` (is a GPU lease live)
+# sidecars:
+#   tts:
+#     port: 8100
+#     probe: /v1/models
+#     pid_file: /tmp/tts-server.pid
+#     note: needs exclusive GPU access while running
+
+# `ps`: label GPU processes by substring of process name or cmdline (after the
+# built-in llama-server / vllm / ds4-server), and by pid file.
+# known_services: {comfyui: comfyui}
+# known_service_pid_files: {tts: /tmp/tts-server.pid}
